@@ -11,17 +11,9 @@ import time
 import socket
 import json
 import robotiq_gripper
-import os
 import math
 #setup out communcation
 
-
-dummylist=["movel(p[0.6, -.13, 0.4,0.0,0.0,0], a=0.6, v=0.1, t=0, r=0)" + "\n",
-"movel(p[0.6, -.13, 0.8,0.0,0.0,0], a=0.6, v=0.1, t=0, r=0)" + "\n",
-"movel(p[0.6, -.13, 0.4,0.0,0.0,0], a=0.6, v=0.1, t=0, r=0)" + "\n",
-"movel(p[0.6, -.13, 0.8,0.0,0.0,0], a=0.6, v=0.1, t=0, r=0)" + "\n"]
-
-newlist=[]
 
 
 # def update_list(ourlist,host,port):
@@ -74,25 +66,34 @@ def send_this_command_urscript(comm,host,port):
 
 def read_and_append_list_return_command(filename):
     data=dict
-    with open(filename,"r") as json_file:
-        json_file=open(filename)
-        data = json.load(json_file)
-        
+    try:
+        with open(filename,"r") as json_file:
+            json_file=open(filename)
+            data = json.load(json_file)
+            
+            try:
+                command=(data["commands"].pop(0))
+
+            except:
+                command={"command":"sleep(1)"+"\n","commandtype":"urscript"}
+            commandrecipe=command["command"]
+            commandtype=command["commandtype"]
         try:
-            command=(data["commands"].pop(0))
-
+            with open(filename,"w") as json_file:
+                json.dump(data,json_file)
         except:
-            command={"command":"sleep(1)"+"\n","commandtype":"urscript"}
-        commandrecipe=command["command"]
-        commandtype=command["commandtype"]
-
+            time.sleep(0.1)        
+            with open(filename,"w") as json_file:
+                json.dump(data,json_file)
+        tasksleft=len(data["commands"])
         
-    with open(filename,"w") as json_file:
-        json.dump(data,json_file)
-    
-    tasksleft=len(data["commands"])
-    
-    return commandrecipe,commandtype,tasksleft
+        return commandrecipe,commandtype,tasksleft
+    except:
+        commandrecipe="sleep(1)"
+        commandtype="urscript"
+        tasksleft=1000
+        return commandrecipe,commandtype,tasksleft
+
 
 UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
@@ -159,7 +160,10 @@ while keep_running:
                 if ((botheval) or (gripperdone)):
                     #send first command to robot and remove frst
                     # send_command_from_list(dummylist,ROBOT_HOST_IP,SECONDARY_PORT)
-                    gripperdone, lefttasks = send_this_command(read_and_append_list_return_command('coords.json'))
+                    try:
+                        gripperdone, lefttasks = send_this_command(read_and_append_list_return_command('coords.json'))
+                    except:
+                        print("skipped")
                     print(str(lefttasks))
                     sock.sendto(str(lefttasks).encode(), (UDP_IP,UDP_PORT))
                     # if (gripperdone):
