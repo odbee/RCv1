@@ -144,7 +144,7 @@ gripper.connect(ROBOT_HOST_IP,63352)
 gripper.activate()
 
 while keep_running:
-    # if int%10000000==0:
+    # try sending 
         try:
             state = rtde_connection.receive(save_in_binary)
             if state is not None:
@@ -158,8 +158,6 @@ while keep_running:
 
                 botheval=((val)=='0') and (isfree==True)
                 if ((botheval) or (gripperdone)):
-                    #send first command to robot and remove frst
-                    # send_command_from_list(dummylist,ROBOT_HOST_IP,SECONDARY_PORT)
                     try:
                         gripperdone, lefttasks = send_this_command(read_and_append_list_return_command('coords.json'))
                     except:
