@@ -2,6 +2,8 @@ import socket
 import math
 import json
 import time
+
+#####            OUTDATED
 def send_command_from_list(ourlist,host,port):
     if len(ourlist) != 0:
         commandtosend= ourlist.pop(0)
@@ -10,10 +12,19 @@ def send_command_from_list(ourlist,host,port):
         s.send(commandtosend)
         s.close()
     return
-
+#### ---------END OUTDATE
 
 def send_this_command(comm,robohost,roboport,grippa):
-    
+    """sends command to robot/gripper
+    Args:
+        comm: command
+        robohost: IP of robot
+        roboport: Port of robot
+        grippa: gripper class.
+
+    Returns:
+        Returns if gripper is done and how many tasks are left.
+    """
     gripperdone=0
     if comm[1]=="urscript":
         host=robohost
@@ -45,6 +56,13 @@ def send_this_command_urscript(comm,host,port):
 
 
 def read_and_append_list_return_command(filename):
+    """sends command to robot/gripper
+    Args:
+        filename: the filename of the json file
+
+    Returns:
+        Returns output needed to be read by send_this_command.
+    """
     data=dict
     try:
         with open(filename,"r") as json_file:

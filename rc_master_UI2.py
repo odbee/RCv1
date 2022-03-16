@@ -18,7 +18,7 @@ import tkinter as tk
 #setup out communcation
 
 ############################ GLOBALS
-JSON_FILE_LOC= 'coords.json'
+JSON_FILE_LOC= 'coords.json' # looks for the json file to read from
 
 ROBOT_HOST_IP = '192.168.1.112'
 RTDE_PORT = 30004
@@ -42,13 +42,14 @@ UDP_PORT = 5005
 sock = socket.socket(socket.AF_INET, # Internet
                      socket.SOCK_DGRAM) # UDP
 
-
+############# SETTING VARIABLES
 keep_running=False
 isfree=True #this may cause problems
 buttonpressed=False
 starttime=time.time()
 endtime=time.time()
 
+############ SETUP RTDE CONNECTION. 
 rtde_connection = rtde.RTDE(ROBOT_HOST_IP, RTDE_PORT)
 gripper = robotiq_gripper.RobotiqGripper()
 
@@ -58,7 +59,8 @@ isfree=True #this may cause problems
 def setup():
     global keep_running
     # setup rtde
-    rtde_connection.connect()
+
+    rtde_connection.connect() 
         # setup recipes
     if not rtde_connection.send_output_setup(output_names, output_types, frequency = sampling_frequency):
         logging.error('Unable to configure output')
@@ -81,37 +83,38 @@ def run():
 
     is_running.config(text=str(keep_running))
     if keep_running:
-    # try sending 
+    # try sending command
         try:
             state = rtde_connection.receive(save_in_binary)
-            if state is not None:
+            
+            if state is not None: #check the state from RTDE to check if the robot is busy
                 val=''
                 for i in range(len(output_names)):
                     size=serialize.get_item_size(output_types[i])
                     val=val+str(state.__dict__[output_names[i]])
-                if((val)!='0'):
+                if((val)!='0'): # if the robot isnt busy set it free and open for sending commands
                     isfree=True
-                machine_status.config(text=val)
+                machine_status.config(text=val) #update the status in the ui
 
-                botheval=((val)=='0') and (isfree==True)
+                botheval=((val)=='0') and (isfree==True) # double lock to avoid sending multiple commands because of asynchrononous update (RTDE has higher refresh rate than execution speed)
                 if ((botheval) or (gripperdone)):
-                    try:
+                    try: # if possible run the command, catch if it failed
                         gripperdone, lefttasks = send_this_command(read_and_append_list_return_command(JSON_FILE_LOC),ROBOT_HOST_IP,SECONDARY_PORT,gripper)
-                    except:
+                    except: # if failed print in command line
                         print("skipped")
                     print(str(lefttasks))
-                    tasks_left.config(text=str(lefttasks))
-                    sock.sendto(str(lefttasks).encode(), (UDP_IP,UDP_PORT))
+                    tasks_left.config(text=str(lefttasks)) # show how many tasks are left
+                    sock.sendto(str(lefttasks).encode(), (UDP_IP,UDP_PORT))# send how many tasks are left through UDP to grasshopper to make a loop possible
                     # if (gripperdone):
                     #     print("gripperdone")
                     isfree=False
                     starttime=time.time()
 
                 endtime=time.time()
-                if abs(endtime-starttime)>1:
+                if abs(endtime-starttime)>1: # check every second, not sure why
                     isfree=True
 
-        except rtde.RTDEException:
+        except rtde.RTDEException: # catch error
             rtde_connection.disconnect()
             print("ERRO")
 
